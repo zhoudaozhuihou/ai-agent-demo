@@ -1,9 +1,10 @@
-from typing import Dict, Optional
-from .base import SQLOptimizer
+from typing import Dict, Optional, cast
+from .base import SQLOptimizer, OptimizationResult
 from langchain_community.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from app.core.config import settings
+import json
 
 class DefaultOptimizer(SQLOptimizer):
     def __init__(self, config: Dict):
@@ -44,7 +45,7 @@ class DefaultOptimizer(SQLOptimizer):
         sql: str,
         prompt: str,
         context: Optional[Dict] = None
-    ) -> Dict:
+    ) -> OptimizationResult:
         """Optimize SQL using LangChain"""
         try:
             result = await self.chain.arun(
@@ -54,8 +55,14 @@ class DefaultOptimizer(SQLOptimizer):
             )
             
             # Parse the JSON response
-            import json
-            return json.loads(result)
+            parsed_result = json.loads(result)
+            
+            # Ensure the result matches OptimizationResult type
+            return cast(OptimizationResult, {
+                "issues": list(parsed_result.get("issues", [])),
+                "optimized_sql": str(parsed_result.get("optimized_sql", sql)),
+                "explanation": str(parsed_result.get("explanation", "No explanation provided"))
+            })
             
         except Exception as e:
             raise Exception(f"Error optimizing SQL with default optimizer: {str(e)}")

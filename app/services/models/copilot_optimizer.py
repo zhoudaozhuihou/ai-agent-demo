@@ -1,7 +1,7 @@
 import aiohttp
 import json
-from typing import Dict, Optional
-from .base import SQLOptimizer
+from typing import Dict, Optional, cast
+from .base import SQLOptimizer, OptimizationResult
 
 class CopilotOptimizer(SQLOptimizer):
     def __init__(self, config: Dict):
@@ -34,7 +34,7 @@ class CopilotOptimizer(SQLOptimizer):
                     raise Exception(f"Failed to get Copilot token: {await response.text()}")
                     
                 data = await response.json()
-                return data.get("token")
+                return str(data.get("token", ""))
 
     async def _get_copilot_completion(self, prompt: str, token: str) -> str:
         """Get completion from Copilot"""
@@ -64,7 +64,7 @@ class CopilotOptimizer(SQLOptimizer):
                     raise Exception(f"Failed to get Copilot completion: {await response.text()}")
                     
                 data = await response.json()
-                return data.get("choices", [{}])[0].get("text", "")
+                return str(data.get("choices", [{}])[0].get("text", ""))
 
     def _create_optimization_prompt(self, sql: str, prompt: str, context: dict) -> str:
         """Create a prompt for SQL optimization"""
@@ -93,12 +93,15 @@ class CopilotOptimizer(SQLOptimizer):
         ```json
         """
 
-    async def optimize(self, sql: str, prompt: str, context: Optional[Dict] = None) -> Dict:
+    async def optimize(self, sql: str, prompt: str, context: Optional[Dict] = None) -> OptimizationResult:
         """Optimize SQL using GitHub Copilot"""
         try:
             # Get fresh token if needed
             if not self.token:
-                self.token = await self._get_copilot_token(self.config["github_token"])
+                github_token = self.config.get("github_token")
+                if not github_token:
+                    raise ValueError("GitHub token not provided in configuration")
+                self.token = await self._get_copilot_token(github_token)
             
             # Create optimization prompt
             optimization_prompt = self._create_optimization_prompt(
@@ -117,7 +120,15 @@ class CopilotOptimizer(SQLOptimizer):
             try:
                 # Extract JSON from the completion
                 json_str = completion.split("```json")[1].split("```")[0].strip()
-                return json.loads(json_str)
+                parsed_result = json.loads(json_str)
+                
+                # Ensure the result matches OptimizationResult type
+                return cast(OptimizationResult, {
+                    "issues": list(parsed_result.get("issues", [])),
+                    "optimized_sql": str(parsed_result.get("optimized_sql", sql)),
+                    "explanation": str(parsed_result.get("explanation", "No explanation provided"))
+                })
+                
             except (IndexError, json.JSONDecodeError) as e:
                 raise Exception(f"Failed to parse Copilot response: {str(e)}")
             

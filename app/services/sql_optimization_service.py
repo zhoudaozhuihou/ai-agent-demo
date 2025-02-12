@@ -47,10 +47,5 @@ class SQLOptimizationService:
     
     async def generate_visualization(self, sql: str) -> Optional[Dict]:
         """Generate visualization data for the SQL query (placeholder)"""
-        # TODO: Implement visualization logic
-        return None
-    
-    async def get_execution_plan(self, sql: str) -> Optional[Dict]:
-        """Get the execution plan for the SQL query (placeholder)"""
-        # TODO: Implement execution plan retrieval
+        # Implementation for visualization generation
         return None

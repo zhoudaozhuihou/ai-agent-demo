@@ -1,5 +1,12 @@
-from typing import Dict, Protocol, Optional
+from typing import Dict, Protocol, Optional, TypedDict, runtime_checkable
 
+class OptimizationResult(TypedDict):
+    """Type definition for optimization result"""
+    issues: list[str]
+    optimized_sql: str
+    explanation: str
+
+@runtime_checkable
 class SQLOptimizer(Protocol):
     """Protocol for SQL optimization models"""
     
@@ -8,7 +15,7 @@ class SQLOptimizer(Protocol):
         sql: str,
         prompt: str,
         context: Optional[Dict] = None
-    ) -> Dict:
+    ) -> OptimizationResult:
         """
         Optimize SQL query using the model
         
@@ -18,9 +25,9 @@ class SQLOptimizer(Protocol):
             context: Optional context about database schema
             
         Returns:
-            Dict containing:
+            OptimizationResult containing:
                 - issues: List of identified issues
                 - optimized_sql: Optimized SQL query
                 - explanation: Explanation of changes
         """
-        pass
+        ...

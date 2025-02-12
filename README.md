@@ -1,22 +1,69 @@
 # SQL Optimization AI Agent
 
-An intelligent SQL optimization service that provides both programmatic API access and a web interface for SQL query optimization.
+An AI-powered SQL optimization service with both API and web interface.
 
 ## Features
 
-- Multiple SQL optimization models support (OpenAI, GitHub Copilot)
-- RESTful API for programmatic access
-- Web interface for interactive use
-- Extensible architecture for adding new optimization models
-- Project and optimization history tracking
-- Comprehensive API documentation
+- AI-powered SQL optimization using multiple models
+- Support for multiple optimizers (OpenAI GPT, GitHub Copilot)
+- Modern React-based web interface
+- RESTful API
+- Multi-database support
+- Query history tracking
+- Performance metrics
+
+## Architecture
+
+### Backend
+
+- FastAPI for API development
+- Tortoise ORM for database operations
+- Multiple AI models for SQL optimization
+- Async operations support
+
+### Frontend
+
+- React 17
+- Material-UI v4
+- Redux for state management
+- Monaco Editor for SQL input
+- Syntax highlighting
+
+## Database Support
+
+The application uses Tortoise ORM and supports multiple database engines:
+
+### Supported Databases
+
+- PostgreSQL (Primary support)
+- MySQL (Optional)
+- SQLite (Optional)
+
+### Database Features
+
+- Connection pooling
+- Automatic schema generation
+- Query history tracking
+- Connection management
+- SSL support
+- Performance metrics collection
+
+## Prerequisites
+
+- Python 3.11+
+- Node.js 16+
+- PostgreSQL 12+ (or other supported databases)
+- OpenAI API key (for GPT-based optimization)
+- GitHub token (optional, for Copilot-based optimization)
 
 ## Installation
 
-1. Clone the repository:
+### Backend Setup
+
+1. Create a virtual environment:
 ```bash
-git clone <repository-url>
-cd text-to-sql-ai-agent
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:
@@ -24,194 +71,115 @@ cd text-to-sql-ai-agent
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables in `.env`:
-```env
-# API Settings
-SECRET_KEY=your-secret-key-here
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# OpenAI Settings (Required for default optimizer)
-OPENAI_API_KEY=your-openai-api-key
-
-# GitHub Settings (Required for Copilot optimizer)
-GITHUB_TOKEN=your-github-token
-
-# Optimizer Settings
-ACTIVE_OPTIMIZER=default  # or "copilot"
-
-# Database
-DATABASE_URL=sqlite:///./sql_app.db
-
-# Logging
-LOG_LEVEL=INFO
+3. Create a PostgreSQL database:
+```sql
+CREATE DATABASE sql_optimizer;
 ```
 
-## Usage
+4. Configure environment variables:
+```bash
+cp .env.example .env
+```
 
-### Starting the Server
+5. Update the .env file with your settings:
+```env
+DATABASE_URL=postgres://username:password@localhost:5432/sql_optimizer
+OPENAI_API_KEY=your-openai-api-key
+GITHUB_TOKEN=your-github-token  # Optional
+```
+
+### Frontend Setup
+
+1. Install dependencies:
+```bash
+cd frontend
+npm install
+```
+
+2. Start the development server:
+```bash
+npm start
+```
+
+## Running the Application
+
+### Start the Backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at http://localhost:8000
 
-### API Endpoints
-
-#### SQL Optimization
+### Start the Frontend
 
 ```bash
-# Optimize SQL query
-POST /api/v1/sql/optimize
-{
-    "sql": "SELECT * FROM users",
-    "prompt": "Optimize query performance",
-    "context": {
-        "table_schema": {
-            "users": {
-                "columns": ["id", "name", "email"],
-                "indexes": ["id", "email"]
-            }
-        }
-    }
-}
+cd frontend
+npm start
 ```
 
-#### Optimizer Management
+The web interface will be available at http://localhost:4000
 
-```bash
-# List all available optimizers
-GET /api/v1/optimizers
+## Database Configuration
 
-# Get current active optimizer
-GET /api/v1/optimizers/active
+### Connection Settings
 
-# Switch to a different optimizer
-POST /api/v1/optimizers/{optimizer_name}/activate
-```
+The application supports various database connection options that can be configured through environment variables or the web interface:
 
-## Optimizer System
-
-### Available Optimizers
-
-1. **Default Optimizer (LangChain + OpenAI)**
-   - Uses OpenAI's GPT models through LangChain
-   - Requires `OPENAI_API_KEY`
-   - Best for general SQL optimization tasks
-
-2. **GitHub Copilot Optimizer**
-   - Uses GitHub Copilot's API
-   - Requires `GITHUB_TOKEN` with Copilot access
-   - Provides code-aware SQL optimization
-
-### Adding Custom Optimizers
-
-1. Create a new optimizer class in `app/services/models/`:
-
-```python
-from typing import Dict, Optional
-from app.services.models.base import SQLOptimizer
-
-class CustomOptimizer(SQLOptimizer):
-    def __init__(self, config: Dict):
-        self.config = config
-        
-    async def optimize(
-        self,
-        sql: str,
-        prompt: str,
-        context: Optional[Dict] = None
-    ) -> Dict:
-        # Implement optimization logic
-        return {
-            "issues": ["list of issues"],
-            "optimized_sql": "optimized query",
-            "explanation": "changes made"
-        }
-```
-
-2. Register the optimizer in `app/core/config.py`:
-
-```python
-# In Settings class
-OPTIMIZERS: Dict[str, OptimizerConfig] = {
-    # ... existing optimizers ...
-    "custom": OptimizerConfig(
-        name="Custom Optimizer",
-        description="My custom SQL optimizer",
-        config={
-            "param1": "value1"
-        }
-    )
-}
-```
-
-3. Register in the factory (`app/services/models/factory.py`):
-
-```python
-from .custom_optimizer import CustomOptimizer
-
-class OptimizerFactory:
-    _optimizers: Dict[str, Type[SQLOptimizer]] = {
-        # ... existing optimizers ...
-        "custom": CustomOptimizer
-    }
-```
-
-### Switching Optimizers
-
-1. **Via Environment Variable**:
 ```env
-ACTIVE_OPTIMIZER=copilot
+DATABASE_URL=postgres://username:password@localhost:5432/sql_optimizer
+DB_MIN_SIZE=2
+DB_MAX_SIZE=10
+DB_SSL=false
 ```
 
-2. **Via API**:
-```bash
-POST /api/v1/optimizers/copilot/activate
-```
+### Adding New Database Connections
 
-3. **In Code**:
-```python
-from app.services.sql_optimization_service import SQLOptimizationService
+You can add new database connections through the API or web interface. Required information includes:
 
-# Use specific optimizer
-service = SQLOptimizationService(optimizer_name="copilot")
+- Database type (PostgreSQL/MySQL/SQLite)
+- Host and port
+- Database name
+- Username and password
+- SSL settings (optional)
 
-# Use default/active optimizer
-service = SQLOptimizationService()
-```
+### Query History
 
-## Project Structure
+The application automatically tracks:
 
-```
-app/
-├── api/
-│   └── v1/
-│       ├── endpoints/
-│       │   ├── sql_optimization.py
-│       │   └── optimizers.py
-│       └── api.py
-├── core/
-│   ├── config.py
-│   └── dependencies.py
-├── services/
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── base.py
-│   │   ├── factory.py
-│   │   ├── default_optimizer.py
-│   │   └── copilot_optimizer.py
-│   └── sql_optimization_service.py
-└── main.py
-```
+- Original SQL queries
+- Optimized versions
+- Performance metrics
+- Optimization suggestions
+- Execution times
+- Error messages (if any)
+
+## API Documentation
+
+The API documentation is available at http://localhost:8000/docs when running the application.
+
+Key endpoints:
+
+- `/api/v1/sql/optimize`: Optimize SQL queries
+- `/api/v1/optimizers`: Manage SQL optimizers
+- `/api/v1/history`: Access query history
+- `/api/v1/databases`: Manage database connections
+
+## Security Considerations
+
+- Database credentials are encrypted
+- Support for SSL connections
+- API key authentication
+- Rate limiting
+- Input validation
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch
+2. Create a feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a new Pull Request
+5. Create a Pull Request
 
 ## License
 
